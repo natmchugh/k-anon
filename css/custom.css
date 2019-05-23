@@ -1,0 +1,15 @@
+
+.box {
+    border: 1px solid #E1E1E1;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 15px 0 15px;
+}
+.box-leak {
+    border: 1px solid black;
+    background-color: red;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 15px 0 15px;
+ }
+@media (max-width: 500px) { .big-image { display: none; } }

@@ -1,0 +1,121 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" crossorigin="anonymous"> 
+<link rel="stylesheet" href="/css/custom.css" crossorigin="anonymous"> 
+<script src="/sha1.js" ></script>
+<script src="/syntax.js" ></script>
+<script>
+  
+function showResult(str) {
+  if (str.length==0) { 
+    resetForm();
+    return;
+  }
+  if (window.XMLHttpRequest) {
+    xmlhttp=new XMLHttpRequest();
+  }
+  xmlhttp.onreadystatechange=function() {
+    count = 0;
+    if (this.readyState==4 && this.status==200) {
+      var index = this.responseText.search(sha.substring(5));
+      if (index > -1) {
+        var line = this.responseText.substring(index).split('\n')[0];
+        count = line.split(':')[1];
+      }
+
+      var payloadStarts = this.responseText.search('---BEGIN-HIBP---');
+      var json = JSON.parse(this.responseText.substring(0, payloadStarts));
+      var jsonstr = syntaxHighlight(json);
+      document.getElementById("jsonResponse").innerHTML = jsonstr;
+    }
+    document.getElementById("count").innerHTML = count;
+    }
+    if (str.length > 3) {
+      var sha = sha1(str);
+      var getUrl = window.location;
+      var url =  "/api.php?range="+sha.substring(0, 5);
+      xmlhttp.open("GET",url , true);
+      xmlhttp.send();
+      document.getElementById("url").innerHTML = getUrl .protocol + "//" + getUrl.host + url
+    }
+}
+function resetForm()
+{
+  xmlhttp=new XMLHttpRequest();
+  xmlhttp.open("GET",'api.php?reset=1' ,true);
+  xmlhttp.send();
+  document.getElementById("jsonResponse").innerHTML = '';
+  document.getElementById("count").innerHTML = 0;
+  document.getElementById("url").innerHTML = '';
+  document.getElementById("password").value = '';
+}
+function toggleLeak()
+{
+    var div = document.getElementById('leak');
+    div.style.display = div.style.display == "none" ? "block" : "none";
+    var link = document.getElementById('leak-link');
+    link.innerHTML = div.style.display == "none" ? "Show Leak" : "I don't care!";
+}
+</script>
+</head>
+<body>
+  <div class="container">
+  <section class="header">
+<h1 class="title"> My cool leaky password checker</h1>
+</section>
+
+<div class="container">
+  <p>
+    This tool will test your password against the <a href="https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange">have i been pwned api</a> which will alert you if the password you select appears in any breaches data out there.
+  </p>
+  <p>
+    And it uses something called the <a href="https://www.troyhunt.com/ive-just-launched-pwned-passwords-version-2/#cloudflareprivacyandkanonymity">k-anonymity</a> model designed to protect the password you entered. So it does not send the password being checked only the first 5 characters of a hash of the password. The service then does not know exactly what password you are interested in but it responds with a list of the rest of the hash for passwords it knows are breached togther with how many times they appear in breach data.
+    <p>
+    </p>
+    <h5>Looks like a pretty useful tool!</h5>There is just one small issue; progressive calls with the hash prefix leaks the password to the service even if the the password is not in the breach data. Open the leak section to see my evil API try to work out what you type in real time.
+  </p>
+  <form>
+  <label>Password</label>
+  <input id="password" type="password" size="30" onkeyup="showResult(this.value)">
+  <button type="button" onclick="resetForm()" >Reset</button>
+  </form>
+
+  <p>
+  Found in <span id="count">0</span> data breaches
+  </p>
+
+
+  <a href="#" onclick="toggleLeak()" id="leak-link">Show Leak</a>
+
+  <p id="leak" style="display:none" class="box-leak">
+
+    Making API call to: <span id="url"></span>
+  <br/>
+  Possible values for password: 
+    <span id="jsonResponse"></span>
+  </p>
+
+  <div class="box">
+    <h5>You're cheating, you know what password I entered</h5>
+    Check out the requests being made from your browser your full password never leaves the page only a small part of the sha1 hash of it does.
+  </div>
+
+  <div class="box">
+    <h5>Yeah but you used a session cookie</h5>
+    Yes I did, and that is the trick my evil API can identify your incoming requests and see what you typed last time and then narrow down the options based on your last request. Nothing is sent till after 4 characters are entered and most possible values for these have been precalculated. Usually after that a single extra character is enough to identify what you typed. Based on what I know of HIBP's architecture it would certainly be much more difficult to identify subsequent requests. That said cloudflare sets a cookie when you use the HIBP API.
+  </div>
+
+  <div class="box">
+    <h5>Why did you do this? Surely this is freaking obvious</h5>
+    <a href="https://github.com/detroitenglish/haveibeenpwned-zxcvbn-lambda-api">Apparently not </a>
+  </div>
+
+  <div class="box">
+    <h5>I managed to defeat it by deleting characters or typing really fast</h5>
+    Good work. This is a toy script written in PHP it could be optimized but it isn't.
+  </div>
+
+  </div>
+</div>
+</body>
+</html>
